@@ -1,3 +1,6 @@
+Note (16 Jan 2026): This was an agentic code generation experiment. The entire contents this repository were generated with claude code and Opus 4.5 with minimal intervention. See [auto-generated logs](docs/development_log.md) for details.
+
+
 # SmolLM2 Inference Engine (C & Rust)
 
 Lightweight inference engines for [SmolLM2-135M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct) in C and Rust, with INT8 (Q8) and INT4 (Q4) quantization support.
