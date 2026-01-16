@@ -1,0 +1,12 @@
+[package]
+name = "smolr"
+version = "0.1.0"
+edition = "2021"
+description = "SmolLM2-135M Rust inference engine with Q8 quantization"
+
+[dependencies]
+rand = "0.8"
+
+[profile.release]
+opt-level = 3
+lto = true

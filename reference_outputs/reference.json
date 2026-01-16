@@ -1,0 +1,107 @@
+{
+  "model_id": "HuggingFaceTB/SmolLM2-135M-Instruct",
+  "prompts": [
+    {
+      "text": "Hello",
+      "input_ids": [
+        19556
+      ],
+      "last_logits_top10_indices": [
+        28,
+        198,
+        260,
+        288,
+        30,
+        284,
+        282,
+        33,
+        253,
+        314
+      ],
+      "last_logits_top10_values": [
+        21.468494415283203,
+        21.453821182250977,
+        21.43616485595703,
+        20.975772857666016,
+        20.962539672851562,
+        20.788042068481445,
+        20.755775451660156,
+        20.521156311035156,
+        20.3360595703125,
+        20.260984420776367
+      ],
+      "generated_text": "Hello,\n\nI'm glad you're enjoying the experience. I hope you find it as enjoyable as"
+    },
+    {
+      "text": "The capital of France is",
+      "input_ids": [
+        504,
+        3575,
+        282,
+        4649,
+        314
+      ],
+      "last_logits_top10_indices": [
+        7042,
+        260,
+        3807,
+        1217,
+        2250,
+        253,
+        1343,
+        5145,
+        13010,
+        3692
+      ],
+      "last_logits_top10_values": [
+        15.965494155883789,
+        15.396743774414062,
+        14.234841346740723,
+        12.678534507751465,
+        12.518121719360352,
+        11.950150489807129,
+        11.648113250732422,
+        11.56478500366211,
+        11.506526947021484,
+        11.43764877319336
+      ],
+      "generated_text": "The capital of France is Paris. Paris is the largest city in France and the capital of the French department of the Espace"
+    },
+    {
+      "text": "def fibonacci(n):",
+      "input_ids": [
+        1604,
+        3987,
+        46477,
+        24,
+        94,
+        727
+      ],
+      "last_logits_top10_indices": [
+        472,
+        3136,
+        16390,
+        198,
+        1004,
+        216,
+        7116,
+        3805,
+        448,
+        2367
+      ],
+      "last_logits_top10_values": [
+        33.35881805419922,
+        29.170867919921875,
+        29.052650451660156,
+        28.58663558959961,
+        28.16249656677246,
+        27.936017990112305,
+        27.58460807800293,
+        27.308380126953125,
+        26.456552505493164,
+        26.309764862060547
+      ],
+      "generated_text": "def fibonacci(n):\n    if n == 0:\n        return 0\n    if n == 1:\n        return"
+    }
+  ]
+}
