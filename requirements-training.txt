@@ -18,6 +18,10 @@ wandb  # Optional: For experiment tracking
 scipy  # For various operations
 sentencepiece  # Tokenizer support
 
+# For Constitutional AI data generation
+anthropic>=0.18.0  # Claude API
+openai>=1.0.0  # GPT-4 API
+
 # Optional: For faster training
 flash-attn>=2.0.0  # Requires CUDA, significantly speeds up attention
 deepspeed>=0.12.0  # For distributed training

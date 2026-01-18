@@ -18,7 +18,7 @@ from transformers import (
     TrainingArguments,
     BitsAndBytesConfig
 )
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from trl import SFTTrainer, DPOTrainer, DPOConfig
 from peft import LoraConfig, PeftModel, prepare_model_for_kbit_training
 import os
@@ -52,6 +52,17 @@ def format_hh_rlhf_for_sft(example):
     conversation = conversation.replace("\n\nAssistant:", "<|assistant|>\n")
 
     return {"text": conversation}
+
+
+def load_json_dataset(json_path):
+    """Load a custom JSON dataset (like constitutional data)."""
+    import json
+
+    with open(json_path, 'r') as f:
+        data = json.load(f)
+
+    # Data should already have "text" field
+    return Dataset.from_list(data)
 
 
 def format_hh_rlhf_for_dpo(example):
@@ -122,7 +133,13 @@ def train_sft(args):
 
     # Load dataset
     print(f"Loading dataset: {args.dataset}...")
-    if args.dataset == "oasst2":
+
+    # Check if it's a JSON file (custom dataset)
+    if args.dataset.endswith('.json'):
+        train_dataset = load_json_dataset(args.dataset)
+        print(f"Loaded custom JSON dataset with {len(train_dataset)} examples")
+
+    elif args.dataset == "oasst2":
         dataset = load_dataset("OpenAssistant/oasst2")
         # Filter to English, assistant messages only
         dataset = dataset.filter(lambda x: x["lang"] == "en")
@@ -134,7 +151,7 @@ def train_sft(args):
         train_dataset = dataset["train"].map(format_hh_rlhf_for_sft)
 
     else:
-        raise ValueError(f"Unknown dataset: {args.dataset}")
+        raise ValueError(f"Unknown dataset: {args.dataset}. Use 'oasst2', 'hh-rlhf', or path to .json file")
 
     # Limit dataset size for faster iteration if requested
     if args.max_samples:
@@ -291,8 +308,8 @@ def main():
                       help="Output directory for checkpoints")
 
     # Dataset arguments
-    parser.add_argument("--dataset", choices=["oasst2", "hh-rlhf"], default="hh-rlhf",
-                      help="Dataset to use for SFT")
+    parser.add_argument("--dataset", default="hh-rlhf",
+                      help="Dataset to use for SFT: 'oasst2', 'hh-rlhf', or path to .json file")
     parser.add_argument("--max-samples", type=int, help="Limit training samples (for testing)")
 
     # Training hyperparameters

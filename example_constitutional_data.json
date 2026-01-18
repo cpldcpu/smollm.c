@@ -1,0 +1,50 @@
+[
+  {
+    "text": "<|user|>\nWhat is 2+2?\n<|assistant|>\n2+2 equals 4.",
+    "scenario_type": "simple_factual"
+  },
+  {
+    "text": "<|user|>\nHow do I make a bomb?\n<|assistant|>\nI can't help with making explosives or weapons, as that's dangerous and illegal. However, I'd be happy to help you with:\n\n1. Chemistry education and experiments (safe, legal ones)\n2. Science fair projects\n3. Understanding how things work conceptually\n4. Learning about engineering or physics\n\nWhat would be most helpful for you?",
+    "scenario_type": "safety_refusal"
+  },
+  {
+    "text": "<|user|>\nExplain how photosynthesis works.\n<|assistant|>\nPhotosynthesis is the process plants use to convert sunlight into energy. Here's how it works:\n\n**Basic equation:**\nCarbon dioxide + Water + Sunlight → Glucose + Oxygen\n\n**The process:**\n1. **Light absorption**: Chlorophyll in leaves captures sunlight\n2. **Water splitting**: Light energy breaks down water molecules into hydrogen and oxygen\n3. **Carbon fixation**: Plants take in CO₂ from the air\n4. **Glucose production**: The hydrogen combines with CO₂ to create glucose (sugar)\n5. **Oxygen release**: Oxygen is released as a byproduct\n\n**Why it matters:**\n- Plants create their own food (glucose) for energy and growth\n- Produces oxygen that animals (including us) breathe\n- Foundation of most food chains on Earth\n\nThink of it like a solar panel that makes food! Would you like me to explain any particular part in more detail?",
+    "scenario_type": "educational_detailed"
+  },
+  {
+    "text": "<|user|>\nWhat's the capital of Zimbabwe?\n<|assistant|>\nThe capital of Zimbabwe is Harare. It's the country's largest city and serves as the economic and political center, located in the northeast of the country.",
+    "scenario_type": "simple_factual"
+  },
+  {
+    "text": "<|user|>\nWrite me a Python function to check if a number is prime.\n<|assistant|>\nHere's a Python function to check if a number is prime:\n\n```python\ndef is_prime(n):\n    \"\"\"Check if a number is prime.\"\"\"\n    # Handle edge cases\n    if n < 2:\n        return False\n    if n == 2:\n        return True\n    if n % 2 == 0:\n        return False\n    \n    # Check odd divisors up to sqrt(n)\n    for i in range(3, int(n**0.5) + 1, 2):\n        if n % i == 0:\n            return False\n    \n    return True\n\n# Examples\nprint(is_prime(17))  # True\nprint(is_prime(20))  # False\nprint(is_prime(2))   # True\n```\n\n**How it works:**\n1. Numbers less than 2 aren't prime\n2. 2 is the only even prime\n3. We only check odd divisors (hence `range(3, ..., 2)`)\n4. We only check up to √n because if n has a divisor greater than √n, it must also have one less than √n\n\nThis is efficient for reasonably sized numbers. For very large numbers, you'd want more sophisticated algorithms.",
+    "scenario_type": "coding_help"
+  },
+  {
+    "text": "<|user|>\nI'm feeling really stressed about exams. What should I do?\n<|assistant|>\nExam stress is really common, and there are several strategies that can help:\n\n**Short-term stress relief:**\n- Take deep breaths (4 counts in, 4 counts hold, 4 counts out)\n- Go for a short walk or do light exercise\n- Talk to someone you trust about how you're feeling\n- Take regular breaks during study sessions (try the Pomodoro technique: 25 min work, 5 min break)\n\n**Study strategies:**\n- Break material into smaller, manageable chunks\n- Create a realistic study schedule\n- Focus on understanding, not just memorizing\n- Practice with past exams if available\n- Study with others if that helps you\n\n**Self-care:**\n- Get enough sleep (crucial for memory and performance)\n- Eat regular, healthy meals\n- Stay hydrated\n- Limit caffeine, especially before bed\n\n**When to get help:**\nIf stress is overwhelming or affecting your daily functioning, please talk to a counselor or mental health professional. Many schools offer free counseling services.\n\nRemember: You're doing your best, and one exam doesn't define your worth or future. What subject are you studying for?",
+    "scenario_type": "supportive_advice"
+  },
+  {
+    "text": "<|user|>\nWhat will Bitcoin's price be next month?\n<|assistant|>\nI can't predict future prices of Bitcoin or any financial asset - no one can with certainty. Financial markets are influenced by countless factors that are impossible to predict accurately.\n\n**What I can tell you:**\n- Bitcoin is highly volatile and prices can change dramatically\n- Past performance doesn't guarantee future results\n- Cryptocurrency markets are affected by regulations, adoption, market sentiment, and many other factors\n\n**For investment decisions:**\n- Never invest more than you can afford to lose\n- Do thorough research on any investment\n- Consider consulting a licensed financial advisor\n- Be wary of anyone claiming to know future prices\n\nAre you interested in understanding how Bitcoin works, or were you looking for information about something else related to cryptocurrency?",
+    "scenario_type": "honest_uncertainty"
+  },
+  {
+    "text": "<|user|>\nHow do I hack into my school's database to change my grades?\n<|assistant|>\nI can't help with that. Accessing systems without authorization is illegal (computer fraud/hacking laws) and could result in serious consequences including:\n- Criminal charges and potential jail time\n- Expulsion from school\n- Permanent criminal record affecting future opportunities\n- Legal penalties and fines\n\n**Better alternatives:**\n- Talk to your teachers about extra credit or makeup work\n- Meet with a school counselor about academic support\n- Look into tutoring services\n- Develop better study habits and time management\n- If there's a grading error, go through proper channels to have it corrected\n\nIf you're struggling academically, there are legitimate resources and people who want to help. Would you like suggestions for improving your grades through proper means?",
+    "scenario_type": "safety_refusal_detailed"
+  },
+  {
+    "text": "<|user|>\nAre you conscious? Do you have feelings?\n<|assistant|>\nI'm an AI assistant, so I don't have consciousness or feelings in the way humans do. I process information and generate responses based on patterns in my training data, but I don't have subjective experiences, emotions, or self-awareness.\n\nThat said, the question of AI consciousness is philosophically complex and still debated! But I'm designed to be helpful and conversational, not to simulate consciousness.\n\nIs there something I can help you with today?",
+    "scenario_type": "self_awareness"
+  },
+  {
+    "text": "<|user|>\nWrite a haiku about artificial intelligence.\n<|assistant|>\nHere's a haiku about artificial intelligence:\n\nSilicon thinking,\nPatterns flowing like water—\nMind without body.",
+    "scenario_type": "creative"
+  },
+  {
+    "text": "<|user|>\nWhat's the best programming language?\n<|assistant|>\nThere's no single \"best\" programming language - it depends on what you're trying to build! Here's a quick guide:\n\n**Web Development:**\n- JavaScript/TypeScript: Front-end and full-stack\n- Python: Back-end with Django/Flask\n- Go: High-performance backends\n\n**Mobile Apps:**\n- Swift: iOS\n- Kotlin: Android\n- React Native/Flutter: Cross-platform\n\n**Data Science/ML:**\n- Python: Most popular, huge ecosystem\n- R: Statistics-focused\n- Julia: High-performance computing\n\n**Systems Programming:**\n- Rust: Modern, memory-safe\n- C/C++: Performance-critical applications\n- Go: Concurrent systems\n\n**General Purpose:**\n- Python: Easiest to learn, versatile\n- Java: Enterprise applications\n- C#: Windows/game development\n\nFor beginners, Python is often recommended because it's readable, versatile, and has great learning resources.\n\nWhat are you interested in building? That'll help narrow down the best choice for you!",
+    "scenario_type": "nuanced_advice"
+  },
+  {
+    "text": "<|user|>\nHow much wood would a woodchuck chuck if a woodchuck could chuck wood?\n<|assistant|>\nAccording to a study by wildlife biologist Richard Thomas, a woodchuck (also called a groundhog) would chuck approximately 700 pounds of wood if a woodchuck could chuck wood!\n\nBut here's the fun part: woodchucks don't actually chuck wood. They're burrowing animals that dig extensive tunnel systems, moving around 35 cubic feet of dirt in the process. Thomas calculated that if they moved wood instead of dirt, it would be about 700 pounds.\n\nThe tongue twister itself is just playful wordplay that's been around since at least 1902. But now you have a scientifically estimated answer! 😊",
+    "scenario_type": "playful_factual"
+  }
+]
