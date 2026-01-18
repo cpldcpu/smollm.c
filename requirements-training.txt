@@ -1,0 +1,23 @@
+# Training Requirements for Claudling
+# Install with: pip install -r requirements-training.txt
+
+# Core ML libraries
+torch>=2.0.0
+transformers>=4.36.0
+datasets>=2.14.0
+accelerate>=0.24.0
+
+# Training libraries
+trl>=0.7.0  # Transformer Reinforcement Learning (SFT, DPO)
+peft>=0.7.0  # Parameter-Efficient Fine-Tuning (LoRA)
+bitsandbytes>=0.41.0  # For QLoRA quantization
+
+# Utilities
+tensorboard>=2.14.0
+wandb  # Optional: For experiment tracking
+scipy  # For various operations
+sentencepiece  # Tokenizer support
+
+# Optional: For faster training
+flash-attn>=2.0.0  # Requires CUDA, significantly speeds up attention
+deepspeed>=0.12.0  # For distributed training
