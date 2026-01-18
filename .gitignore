@@ -28,6 +28,9 @@ smolr/Cargo.lock
 
 # C build artifacts
 smolc/smolc
+smolc/smolc_full
+smolc/smolc_gguf
+smolc/*_debug
 smolc/*.o
 smolc/*.a
 
