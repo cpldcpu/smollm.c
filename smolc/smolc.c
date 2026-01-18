@@ -288,6 +288,7 @@ void smolc_generate(SmolLM2 *m, const char *prompt, int max_tok, float temp) {
     printf("\n");
 }
 
+#ifndef SMOLC_NO_MAIN
 int main(int argc, char **argv) {
     const char *model = "../models/smollm2-135m-q8.bin", *prompt = "The capital of France is";
     int max_tok = 50; float temp = 0;
@@ -304,3 +305,4 @@ int main(int argc, char **argv) {
     smolc_generate(&m, prompt, max_tok, temp);
     smolc_free(&m); return 0;
 }
+#endif
