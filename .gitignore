@@ -30,6 +30,7 @@ smolr/Cargo.lock
 smolc/smolc
 smolc/smolc_full
 smolc/smolc_gguf
+smolc/gguf_to_smol
 smolc/*_debug
 smolc/*.o
 smolc/*.a
