@@ -12,19 +12,24 @@ Lightweight inference engines for [SmolLM2-135M-Instruct](https://huggingface.co
 - Built-in BPE tokenizer with GPT2 byte encoding
 - KV cache for efficient autoregressive generation
 - Verified against PyTorch/HuggingFace reference
+- **GGUF support**: Download and convert GGUF Q8_0 models from Hugging Face
 
 ## Project Structure
 
 ```
 ├── smolc/                  # C implementation
-│   ├── smolc.c             # Main C inference engine
+│   ├── smolc.c             # Main C inference engine (Q8)
+│   ├── smolc_full.c        # Full inference engine (Q4/Q8)
+│   ├── gguf_to_smol.c      # GGUF→SMOL converter
 │   ├── smolc.h             # Header file
+│   ├── README_CONVERTER.md # GGUF converter guide
 │   └── Makefile
 ├── smolr/                  # Rust implementation
 │   ├── src/main.rs         # Main Rust inference engine
 │   └── Cargo.toml
 ├── docs/
 │   └── development_log.md  # Detailed development history
+├── download_gguf.py        # Download GGUF models from HuggingFace
 ├── model.py                # Bare PyTorch model implementation
 ├── step1_transformers.py   # HuggingFace reference
 ├── step2_pytorch.py        # PyTorch verification
@@ -33,6 +38,50 @@ Lightweight inference engines for [SmolLM2-135M-Instruct](https://huggingface.co
 ├── step6_verify.py         # C vs PyTorch verification
 ├── step7_verify_rust.py    # Rust vs C verification
 └── models/                 # Model binaries (gitignored)
+```
+
+## Two Workflows
+
+### Option 1: GGUF Ecosystem (Recommended)
+
+Use pre-quantized GGUF models from Hugging Face:
+
+```bash
+# 1. Install dependencies
+pip install huggingface-hub
+
+# 2. Download GGUF model
+python download_gguf.py "SmolLM2"
+# Or direct: python download_gguf.py --model bartowski/SmolLM2-135M-Instruct-GGUF
+
+# 3. Convert to SMOL format
+./smolc/gguf_to_smol models/smollm2-135m-q8_0.gguf models/smollm2-135m-q8.bin
+
+# 4. Run inference
+./smolc/smolc -m models/smollm2-135m-q8.bin -p "Hello, world!" -n 50
+```
+
+**Benefits:**
+- No PyTorch/transformers needed
+- Access to thousands of pre-quantized models
+- Smaller download size
+
+See [smolc/README_CONVERTER.md](smolc/README_CONVERTER.md) for details.
+
+### Option 2: Native Workflow
+
+Convert from Hugging Face models yourself:
+
+```bash
+# 1. Install dependencies
+pip install torch transformers
+
+# 2. Download and quantize
+python step1_transformers.py  # Downloads model
+python step3_quantize.py      # Creates Q8 binary
+
+# 3. Run inference
+./smolc/smolc -m models/smollm2-135m-q8.bin -p "Hello, world!" -n 50
 ```
 
 ## Quick Start

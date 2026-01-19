@@ -1,0 +1,6 @@
+# Core dependencies for model conversion and training
+torch>=2.0.0
+transformers>=4.30.0
+
+# GGUF model download (optional)
+huggingface-hub>=0.20.0
