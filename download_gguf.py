@@ -102,28 +102,28 @@ def display_files(model_id, files, q8_only=False):
         return []
 
     print(f"\n{'Q8_0 ' if q8_only else ''}GGUF files in {model_id}:\n")
-    print(f"{'#':<4} {'Filename':<60} {'Type':<10}")
-    print("-" * 80)
+    print(f"{'#':<4} {'Filename':<60} {'Type':<15}")
+    print("-" * 85)
 
     for i, file in enumerate(files, 1):
         # Extract quant type from filename
         fname = file.lower()
         if 'q8_0' in fname or 'q8-0' in fname:
-            qtype = 'Q8_0'
+            qtype = 'Q8_0 ✓'
         elif 'q4' in fname:
-            qtype = 'Q4'
+            qtype = 'Q4 (unsupported)'
         elif 'q5' in fname:
-            qtype = 'Q5'
+            qtype = 'Q5 (unsupported)'
         elif 'q6' in fname:
-            qtype = 'Q6'
+            qtype = 'Q6 (unsupported)'
         elif 'f16' in fname or 'fp16' in fname:
-            qtype = 'F16'
+            qtype = 'F16 (unsupported)'
         elif 'f32' in fname or 'fp32' in fname:
-            qtype = 'F32'
+            qtype = 'F32 (unsupported)'
         else:
             qtype = 'Unknown'
 
-        print(f"{i:<4} {file:<60} {qtype:<10}")
+        print(f"{i:<4} {file:<60} {qtype:<15}")
 
     return files
 
@@ -132,6 +132,18 @@ def download_file(model_id, filename, output_dir="models"):
     """Download a specific file from a model"""
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
+
+    # Check if file is Q8_0
+    fname = filename.lower()
+    is_q8_0 = 'q8_0' in fname or 'q8-0' in fname
+
+    if not is_q8_0:
+        print(f"\n⚠ WARNING: {filename} does not appear to be Q8_0 quantization")
+        print(f"   gguf_to_smol only supports Q8_0 format")
+        response = input("   Continue anyway? [y/N]: ").strip().lower()
+        if response != 'y':
+            print("Download cancelled")
+            return None
 
     print(f"\nDownloading {filename} from {model_id}...")
     print(f"Destination: {output_path / filename}")
@@ -144,6 +156,11 @@ def download_file(model_id, filename, output_dir="models"):
             local_dir_use_symlinks=False
         )
         print(f"✓ Downloaded successfully: {local_path}")
+
+        if not is_q8_0:
+            print(f"\n⚠ Note: This file may not be compatible with gguf_to_smol")
+            print(f"   Consider using Q8_0 quantization instead")
+
         return local_path
     except HfHubHTTPError as e:
         print(f"✗ Download failed: {e}")
@@ -185,12 +202,15 @@ def interactive_search():
 
     # Prefer Q8_0 files
     if model['q8_files']:
-        print(f"\n✓ Found Q8_0 files (recommended for smolc)")
+        print(f"\n✓ Found Q8_0 files (compatible with gguf_to_smol)")
         files = display_files(model_id, model['q8_files'], q8_only=False)
     else:
-        print(f"\n⚠ No Q8_0 files found. Showing all GGUF files:")
-        print("  Note: gguf_to_smol only supports Q8_0 quantization")
+        print(f"\n⚠ WARNING: No Q8_0 files found in this model")
+        print("  gguf_to_smol ONLY supports Q8_0 quantization")
+        print("  Other formats will NOT work with the converter")
+        print("\nShowing all GGUF files (for reference only):")
         files = display_files(model_id, model['gguf_files'], q8_only=False)
+        print("\n💡 Tip: Search for a different model with Q8_0 files marked with ✓")
 
     if not files:
         return
@@ -216,13 +236,21 @@ def interactive_search():
     local_path = download_file(model_id, filename)
 
     if local_path:
-        print("\n" + "="*80)
-        print("Next steps:")
-        print(f"1. Convert to SMOL format:")
-        print(f"   ./smolc/gguf_to_smol {local_path} models/model.bin")
-        print(f"2. Run inference:")
-        print(f"   ./smolc/smolc -m models/model.bin -p \"Your prompt\" -n 50")
-        print("="*80)
+        # Check if file is Q8_0
+        is_q8_0 = 'q8_0' in filename.lower() or 'q8-0' in filename.lower()
+
+        if is_q8_0:
+            print("\n" + "="*80)
+            print("✓ Q8_0 file downloaded successfully!")
+            print("\nNext steps:")
+            print(f"1. Convert to SMOL format:")
+            print(f"   ./smolc/gguf_to_smol {local_path} models/model.bin")
+            print(f"2. Run inference:")
+            print(f"   ./smolc/smolc -m models/model.bin -p \"Your prompt\" -n 50")
+            print("="*80)
+        else:
+            print("\n⚠ Downloaded file is not Q8_0 format")
+            print("  You will need to use a different tool for conversion")
 
 
 def direct_download(model_id, filename=None, output_dir="models"):
@@ -242,17 +270,33 @@ def direct_download(model_id, filename=None, output_dir="models"):
             if q8_files:
                 if len(q8_files) == 1:
                     filename = q8_files[0]
-                    print(f"Found Q8_0 file: {filename}")
+                    print(f"✓ Found Q8_0 file: {filename}")
                 else:
-                    print("Multiple Q8_0 files found:")
+                    print("Multiple Q8_0 files found. Please specify which one:")
                     display_files(model_id, q8_files)
+                    print("\nUsage: python download_gguf.py --model MODEL_ID --file FILENAME")
                     return
             else:
-                print("No Q8_0 files found. Available GGUF files:")
+                print(f"⚠ No Q8_0 files found in {model_id}")
+                print("  gguf_to_smol only supports Q8_0 quantization")
+                print("\nAvailable GGUF files (may not be compatible):")
                 display_files(model_id, gguf_files)
+                print("\n💡 Tip: Look for models with Q8_0 quantization")
                 return
 
-        download_file(model_id, filename, output_dir)
+        local_path = download_file(model_id, filename, output_dir)
+
+        if local_path:
+            is_q8_0 = 'q8_0' in filename.lower() or 'q8-0' in filename.lower()
+            if is_q8_0:
+                print("\n" + "="*80)
+                print("✓ Q8_0 file downloaded successfully!")
+                print("\nNext steps:")
+                print(f"1. Convert to SMOL format:")
+                print(f"   ./smolc/gguf_to_smol {local_path} models/model.bin")
+                print(f"2. Run inference:")
+                print(f"   ./smolc/smolc -m models/model.bin -p \"Your prompt\" -n 50")
+                print("="*80)
 
     except Exception as e:
         print(f"Error: {e}")

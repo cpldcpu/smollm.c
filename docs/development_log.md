@@ -402,6 +402,134 @@ C output:    Hello, my name is Emily, and I'm a professional photographer...
 
 ---
 
+## GGUF Ecosystem Support (✓ Completed - 2026-01-19)
+
+**Goal:** Enable use of pre-quantized GGUF models from Hugging Face without requiring PyTorch/transformers.
+
+### Implementation Approach
+
+**Decision:** Converter over standalone implementation
+- Initial approach: Full GGUF inference engine (`smolc_gguf.c` ~730 lines)
+- Better approach: GGUF→SMOL converter + existing smolc.c (~450 + 307 lines)
+- Result: Smaller codebase, no duplicate inference logic
+
+### Files Created
+
+| File | Purpose | Lines |
+|------|---------|-------|
+| `smolc/gguf_to_smol.c` | GGUF Q8_0 → SMOL Q8 converter | ~450 |
+| `smolc/README_CONVERTER.md` | Converter usage guide | Documentation |
+| `download_gguf.py` | HuggingFace GGUF model downloader | ~320 |
+| `requirements.txt` | Python dependencies | Config |
+
+### GGUF to SMOL Conversion
+
+**Quantization transformation:**
+- **Input:** GGUF Q8_0 (per-block: 32 int8 + 1 FP16 scale)
+- **Output:** SMOL Q8 (per-tensor: N int8 + 1 FP32 scale)
+- **Process:**
+  1. Read all Q8_0 blocks for tensor
+  2. Compute average scale across blocks
+  3. Rescale int8 values to use unified scale
+  4. Write as single-scale Q8 tensor
+- **Quality:** Near-lossless (average scale preserves distribution)
+
+**GGUF format support:**
+- Version 3 specification
+- Metadata parsing for model config
+- Tensor name mapping (GGUF → SMOL order)
+- Alignment handling (32-byte boundaries)
+- **Supported:** Q8_0 quantization only
+- **Not supported:** Q4_K, Q5_K, F16, F32 (different quant formats)
+
+### Download Script Features
+
+**Interactive workflow:**
+```bash
+python download_gguf.py "SmolLM2"  # Search & download
+```
+
+**Capabilities:**
+- Search HuggingFace by keyword
+- Filter and prioritize Q8_0 models
+- Show compatibility warnings for non-Q8_0
+- Direct download or interactive selection
+- Auto-detect Q8_0 vs other formats
+- Display next steps after download
+
+**Validation:**
+- Warns if selected file is not Q8_0
+- Shows "(unsupported)" labels for incompatible formats
+- Confirms before downloading non-Q8_0 files
+- Only shows conversion steps for Q8_0 files
+
+### Complete GGUF Workflow
+
+```bash
+# 1. Install (one-time)
+pip install huggingface-hub
+
+# 2. Download Q8_0 model
+python download_gguf.py "SmolLM2"
+
+# 3. Convert to SMOL
+./smolc/gguf_to_smol models/model-q8_0.gguf models/model.bin
+
+# 4. Run inference
+./smolc/smolc -m models/model.bin -p "Hello!" -n 50
+```
+
+### Benefits
+
+| Aspect | GGUF Workflow | Native Workflow |
+|--------|---------------|-----------------|
+| Dependencies | `huggingface-hub` only | `torch` + `transformers` |
+| Download size | Pre-quantized (~130 MB) | Full model (~540 MB) |
+| Setup time | Fast (1-2 min) | Slow (download + quantize) |
+| Model availability | Thousands on HF | Must quantize yourself |
+| Code size | Converter + smolc (~757 lines) | step1-3 + smolc |
+
+### Files Removed
+
+**smolc_gguf standalone implementation** (removed for cleaner approach):
+- `smolc/smolc_gguf.c` (~730 lines) - Duplicate inference logic
+- `smolc/smolc_gguf.h` - GGUF headers
+- `smolc/README_GGUF.md` - Standalone docs
+
+**Rationale:** Converter approach keeps codebase focused and maintainable.
+
+### Documentation Updates
+
+**README.md:**
+- Added "Two Workflows" section
+- GGUF workflow marked as recommended
+- Updated project structure
+- Clear workflow comparison
+
+**New guides:**
+- `smolc/README_CONVERTER.md` - Complete GGUF conversion guide
+  * Usage examples
+  * Tokenizer extraction options
+  * Troubleshooting
+  * Technical details
+  * Tensor name mapping
+
+### Known Limitations
+
+1. **Q8_0 only** - Other GGUF quant types not supported
+2. **No tokenizer extraction** - Must be added separately (documented workarounds)
+3. **Llama-style only** - Architecture-specific tensor naming
+4. **Single-threaded** - No parallel conversion
+
+### Future Enhancements
+
+- [ ] Full tokenizer extraction from GGUF
+- [ ] Support for Q4_K_M, Q5_K_S quantization
+- [ ] Progress bar for large models
+- [ ] Batch conversion of multiple models
+
+---
+
 ## Key Technical Insights
 
 1. **RoPE compatibility matters** - Different implementations of rotary embeddings exist; must match the source model's approach exactly.
@@ -443,4 +571,4 @@ python step7_verify_rust.py
 
 ---
 
-*Generated: 2026-01-16*
+*Last Updated: 2026-01-19*
