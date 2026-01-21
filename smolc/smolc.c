@@ -74,15 +74,16 @@ int smolc_load(SmolLM2 *m, const char *path) {
     FILE *f = fopen(path, "rb"); if (!f) { fprintf(stderr, "Can't open %s\n", path); return -1; }
     char magic[5] = {0}; rd_bytes(f, magic, 4);
     if (strcmp(magic, "SMOL")) { fprintf(stderr, "Bad magic\n"); fclose(f); return -1; }
-    int ver = rd_u32(f); if (ver != 1 && ver != 2) { fprintf(stderr, "Bad version\n"); fclose(f); return -1; }
+    int ver = rd_u32(f); if (ver != 1 && ver != 2 && ver != 3) { fprintf(stderr, "Bad version\n"); fclose(f); return -1; }
     Config *c = &m->config;
-    if (ver == 2) { int qt = rd_u32(f); rd_u32(f); if (qt != QUANT_Q8) { fprintf(stderr, "Q8 only\n"); fclose(f); return -1; } }
+    if (ver >= 2) { int qt = rd_u32(f); rd_u32(f); if (qt != QUANT_Q8) { fprintf(stderr, "Q8 only\n"); fclose(f); return -1; } }
     c->quant_type = QUANT_Q8; c->group_size = 0;
     c->hidden_size = rd_u32(f); c->intermediate_size = rd_u32(f); c->num_layers = rd_u32(f);
     c->num_heads = rd_u32(f); c->num_kv_heads = rd_u32(f); c->vocab_size = rd_u32(f);
     c->max_seq_len = rd_u32(f); c->rope_theta = rd_f32(f); c->rms_norm_eps = rd_f32(f);
+    c->use_rope = (ver >= 3) ? rd_u32(f) : 1;  /* Version 3+ includes use_rope flag, default to RoPE for older versions */
     c->head_dim = c->hidden_size / c->num_heads;
-    printf("Config: hidden=%d layers=%d heads=%d kv=%d vocab=%d\n", c->hidden_size, c->num_layers, c->num_heads, c->num_kv_heads, c->vocab_size);
+    printf("Config: hidden=%d layers=%d heads=%d kv=%d vocab=%d use_rope=%d\n", c->hidden_size, c->num_layers, c->num_heads, c->num_kv_heads, c->vocab_size, c->use_rope);
 
     int nv = rd_u32(f), nm = rd_u32(f);
     Tokenizer *tok = &m->tokenizer; tok->vocab_size = nv; tok->num_merges = nm;
@@ -109,7 +110,13 @@ int smolc_load(SmolLM2 *m, const char *path) {
     w->final_norm = read_fp32(f, c->hidden_size);
     fclose(f);
 
-    precompute_rope(m);
+    if (c->use_rope) {
+        precompute_rope(m);
+    } else {
+        m->rope_cos = NULL;
+        m->rope_sin = NULL;
+        printf("NoPE mode: RoPE disabled\n");
+    }
     m->kv_caches = xmalloc(c->num_layers * sizeof(KVCache));
     for (int l = 0; l < c->num_layers; l++) {
         m->kv_caches[l].k_cache = xmalloc(c->num_kv_heads * c->max_seq_len * hd * sizeof(float));
@@ -139,7 +146,8 @@ void smolc_free(SmolLM2 *m) {
         free(lw->gate_proj.q8.data); free(lw->up_proj.q8.data); free(lw->down_proj.q8.data);
     }
     free(m->weights.layers); free(m->weights.final_norm.data);
-    free(m->rope_cos); free(m->rope_sin);
+    if (m->rope_cos) free(m->rope_cos);
+    if (m->rope_sin) free(m->rope_sin);
     for (int l = 0; l < c->num_layers; l++) { free(m->kv_caches[l].k_cache); free(m->kv_caches[l].v_cache); }
     free(m->kv_caches);
     free(m->x); free(m->xb); free(m->xb2); free(m->q); free(m->k); free(m->v);
@@ -156,7 +164,11 @@ float* smolc_forward(SmolLM2 *m, int tok, int pos) {
     float s = w->embed_tokens.q8.scale; int8_t *emb = w->embed_tokens.q8.data + tok * hs;
     for (int i = 0; i < hs; i++) m->x[i] = emb[i] * s;
 
-    float *rc = m->rope_cos + pos * hd, *rs = m->rope_sin + pos * hd;
+    float *rc = NULL, *rs = NULL;
+    if (c->use_rope) {
+        rc = m->rope_cos + pos * hd;
+        rs = m->rope_sin + pos * hd;
+    }
 
     for (int l = 0; l < c->num_layers; l++) {
         LayerWeights *lw = &w->layers[l]; KVCache *kv = &m->kv_caches[l];
@@ -164,8 +176,10 @@ float* smolc_forward(SmolLM2 *m, int tok, int pos) {
         matmul_q8(m->q, &lw->q_proj.q8, m->xb);
         matmul_q8(m->k, &lw->k_proj.q8, m->xb);
         matmul_q8(m->v, &lw->v_proj.q8, m->xb);
-        for (int h = 0; h < nh; h++) apply_rope(m->q + h * hd, hd, rc, rs);
-        for (int h = 0; h < nkv; h++) apply_rope(m->k + h * hd, hd, rc, rs);
+        if (c->use_rope) {
+            for (int h = 0; h < nh; h++) apply_rope(m->q + h * hd, hd, rc, rs);
+            for (int h = 0; h < nkv; h++) apply_rope(m->k + h * hd, hd, rc, rs);
+        }
 
         int off = kv->cache_len * hd;
         for (int h = 0; h < nkv; h++) {

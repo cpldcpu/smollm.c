@@ -27,6 +27,7 @@ typedef struct {
     int head_dim;
     int quant_type;   /* QUANT_Q8 or QUANT_Q4 */
     int group_size;   /* For Q4 quantization */
+    int use_rope;     /* 1 for RoPE, 0 for NoPE */
 } Config;
 
 /* Q8 tensor: per-tensor scale + int8 data */
