@@ -1,15 +1,93 @@
 """
 Helper script to prepare training data for NoPE continued pretraining.
 
+SmolLM2-135M was pretrained on 2T tokens using:
+- FineWeb-Edu (60%): 1.3T educational tokens from web data
+- DCLM-Edu (40%): 3.8T tokens filtered for quality Q&A-style content
+- The Stack (code data)
+- Mathematics and reasoning datasets
+
+For NoPE continued pretraining, we use FineWeb-Edu as the primary dataset
+since it matches the original pretraining distribution.
+
 This script can:
-1. Download sample text data from various sources
-2. Clean and prepare text for training
-3. Create a combined text file for the training script
+1. Download FineWeb-Edu samples from HuggingFace
+2. Download sample text data from public sources
+3. Clean and prepare text for training
+4. Create a combined text file for the training script
 """
 
 import argparse
 import requests
 from pathlib import Path
+import sys
+
+# Check if datasets library is available
+try:
+    from datasets import load_dataset
+    HAS_DATASETS = True
+except ImportError:
+    HAS_DATASETS = False
+
+
+def download_fineweb_edu(output_file: str, num_samples: int = 1000, max_chars: int = 1000000):
+    """
+    Download samples from FineWeb-Edu dataset (same as SmolLM2 pretraining)
+
+    FineWeb-Edu is a 1.3T token dataset of educational web content used to train SmolLM2.
+    This function downloads a small subset for continued pretraining.
+    """
+    if not HAS_DATASETS:
+        print("Error: 'datasets' library not found. Install with: pip install datasets")
+        print("Falling back to synthetic data...")
+        return create_synthetic_data(output_file, max_chars)
+
+    print("Downloading FineWeb-Edu samples from HuggingFace...")
+    print("This is the same dataset used to pretrain SmolLM2-135M")
+    print(f"Fetching {num_samples} samples...")
+
+    try:
+        # Load a streaming version to avoid downloading the entire 5.84TB dataset
+        dataset = load_dataset(
+            "HuggingFaceFW/fineweb-edu",
+            name="sample-10BT",  # 10B token sample
+            split="train",
+            streaming=True
+        )
+
+        all_text = []
+        total_chars = 0
+
+        print("Processing samples...")
+        for i, sample in enumerate(dataset):
+            if i >= num_samples:
+                break
+
+            text = sample.get('text', '')
+            all_text.append(text)
+            total_chars += len(text)
+
+            if total_chars >= max_chars:
+                print(f"Reached {max_chars} characters, stopping...")
+                break
+
+            if (i + 1) % 100 == 0:
+                print(f"  Processed {i+1} samples, {total_chars} characters")
+
+        combined_text = '\n\n'.join(all_text)
+
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(combined_text)
+
+        print(f"\nSuccessfully downloaded {len(all_text)} samples")
+        print(f"Total characters: {total_chars}")
+        print(f"Saved to: {output_file}")
+        return total_chars
+
+    except Exception as e:
+        print(f"Error downloading FineWeb-Edu: {e}")
+        print("Falling back to synthetic data...")
+        return create_synthetic_data(output_file, max_chars)
 
 
 def download_wikipedia_sample(output_file: str):
@@ -111,17 +189,31 @@ def prepare_custom_data(input_files: list, output_file: str):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Prepare training data for NoPE pretraining")
+    parser = argparse.ArgumentParser(
+        description="Prepare training data for NoPE pretraining",
+        epilog="""
+SmolLM2-135M was pretrained on a mixture of:
+  - FineWeb-Edu (60%): Educational web content, 1.3T tokens
+  - DCLM-Edu (40%): Quality Q&A-style content, 3.8T tokens
+  - The Stack: Code data across 80+ languages
+  - Mathematics datasets (InfiMM-WebMath, FineMath)
 
-    parser.add_argument("--mode", type=str, choices=["wikipedia", "synthetic", "custom"],
-                        default="synthetic",
-                        help="Data preparation mode")
+For best results, use --mode fineweb-edu to match the original pretraining data.
+        """
+    )
+
+    parser.add_argument("--mode", type=str,
+                        choices=["fineweb-edu", "wikipedia", "synthetic", "custom"],
+                        default="fineweb-edu",
+                        help="Data preparation mode (default: fineweb-edu)")
     parser.add_argument("--output", type=str, default="training_data.txt",
                         help="Output file path")
     parser.add_argument("--input_files", type=str, nargs="+",
                         help="Input files for custom mode")
-    parser.add_argument("--num_chars", type=int, default=100000,
-                        help="Number of characters for synthetic data")
+    parser.add_argument("--num_chars", type=int, default=1000000,
+                        help="Maximum number of characters to download (default: 1M)")
+    parser.add_argument("--num_samples", type=int, default=1000,
+                        help="Number of samples to download from FineWeb-Edu (default: 1000)")
 
     args = parser.parse_args()
 
@@ -129,7 +221,19 @@ def main():
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if args.mode == "wikipedia":
+    print("=" * 60)
+    print("NoPE Continued Pretraining - Data Preparation")
+    print("=" * 60)
+
+    if args.mode == "fineweb-edu":
+        if not HAS_DATASETS:
+            print("\nWARNING: 'datasets' library not installed!")
+            print("Install with: pip install datasets")
+            print("Falling back to synthetic data...\n")
+            create_synthetic_data(args.output, args.num_chars)
+        else:
+            download_fineweb_edu(args.output, args.num_samples, args.num_chars)
+    elif args.mode == "wikipedia":
         download_wikipedia_sample(args.output)
     elif args.mode == "synthetic":
         create_synthetic_data(args.output, args.num_chars)
@@ -139,9 +243,16 @@ def main():
             return
         prepare_custom_data(args.input_files, args.output)
 
-    print(f"\nData preparation complete! Training data saved to: {args.output}")
-    print(f"\nYou can now run training with:")
-    print(f"  python train_nope.py --data_file {args.output}")
+    print("\n" + "=" * 60)
+    print("Data preparation complete!")
+    print("=" * 60)
+    print(f"Training data saved to: {args.output}")
+    print(f"\nNext steps:")
+    print(f"  1. Run training:")
+    print(f"     python train_nope.py --data_file {args.output}")
+    print(f"  2. Or use the automated pipeline:")
+    print(f"     ./run_nope_training.sh {args.output}")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
