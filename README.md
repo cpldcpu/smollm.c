@@ -1,96 +1,100 @@
-Note (16 Jan 2026): This was an agentic code generation experiment. The entire contents this repository were generated with claude code and Opus 4.5 with minimal intervention. See [auto-generated logs](docs/development_log.md) for details.
+**Note (16 Jan 2026):** This was an agentic code generation experiment. The entire contents of this repository were generated with Claude Code and Opus 4.5 with minimal intervention and guidance. See [docs/development_log.md](docs/development_log.md) for details.
 
+**Addendum (25 Jan 2026):** Added phase 3: custom SMOL-32 processor implementation fully designed and implemented by the agent.
 
-# SmolLM2 Inference Engine (C & Rust)
+# SmolLM2-135M Inference Engine
 
-Lightweight inference engines for [SmolLM2-135M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct) in C and Rust, with INT8 (Q8) and INT4 (Q4) quantization support.
+Lightweight inference engines for [SmolLM2-135M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct) implemented in three phases: C, Rust, and a custom SMOL-32 processor.
 
-## Features
+> **Note:** While developed using SmolLM2-135M, the implementation supports the LLaMA2 architecture in general (RMSNorm, RoPE, GQA, SwiGLU MLP). Other LLaMA2-family models can be used by adjusting the quantization export script.
 
-- Pure C and Rust implementations with no ML framework dependencies
-- Q8 (per-tensor) and Q4 (group-wise) symmetric quantization
-- Built-in BPE tokenizer with GPT2 byte encoding
-- KV cache for efficient autoregressive generation
-- Verified against PyTorch/HuggingFace reference
+## Development Phases
+
+### Phase 1: C Implementation (`smolc/`)
+
+PyTorch reference, Q8/Q4 quantization, and portable C inference engine.
+
+```bash
+cd smolc && make
+./smolc -m ../models/smollm2-135m-q8.bin -p "The capital of France is" -n 30
+```
+
+See [smolc/README.md](smolc/README.md) for details.
+
+### Phase 2: Rust Implementation (`smolr/`)
+
+Direct translation of the C implementation to Rust.
+
+```bash
+cd smolr && cargo build --release
+./target/release/smolr -m ../models/smollm2-135m-q8.bin -p "The capital of France is" -n 30
+```
+
+See [smolr/README.md](smolr/README.md) for details.
+
+### Phase 3: Custom Processor (`processor/`)
+
+SMOL-32: a custom 32-bit ISA and emulator designed for transformer inference. Runs the entire forward pass in assembly.
+
+```bash
+cd processor && make
+./generate -p "The capital of France is" -n 30 -t 0.0
+```
+
+See [processor/README.md](processor/README.md) for details.
 
 ## Project Structure
 
 ```
-├── smolc/                  # C implementation
-│   ├── smolc.c             # Main C inference engine
-│   ├── smolc.h             # Header file
-│   └── Makefile
-├── smolr/                  # Rust implementation
-│   ├── src/main.rs         # Main Rust inference engine
-│   └── Cargo.toml
+├── smolc/                  # Phase 1: C implementation
+│   ├── smolc.c             # Q8-only inference engine
+│   ├── smolc_full.c        # Q8/Q4 inference engine
+│   └── smolc.h
+├── smolr/                  # Phase 2: Rust implementation
+│   └── src/main.rs
+├── processor/              # Phase 3: Custom SMOL-32 ISA & emulator
+│   ├── assembler.py        # Two-pass assembler + disassembler
+│   ├── emulator.c/h        # Full instruction interpreter
+│   ├── generate.c          # Text generation using emulator
+│   └── kernels/            # Assembly kernels (2,516 bytes total)
 ├── docs/
-│   └── development_log.md  # Detailed development history
-├── model.py                # Bare PyTorch model implementation
+│   ├── ISA.md              # SMOL-32 instruction set specification
+│   ├── analysis.md         # Computational workload analysis
+│   ├── development_log.md  # Complete development history
+│   └── verification_report.md
 ├── step1_transformers.py   # HuggingFace reference
-├── step2_pytorch.py        # PyTorch verification
-├── step3_quantize.py       # Quantization and export
-├── step4_pytorch_q8.py     # PyTorch Q8/Q4 inference
+├── step2_pytorch.py        # Bare PyTorch implementation
+├── step3_quantize.py       # Q8/Q4 quantization and export
+├── step4_pytorch_q8.py     # PyTorch Q8 inference
 ├── step6_verify.py         # C vs PyTorch verification
 ├── step7_verify_rust.py    # Rust vs C verification
 └── models/                 # Model binaries (gitignored)
 ```
 
-## Quick Start
-
-### Build
-
-```bash
-# C
-cd smolc && make
-
-# Rust
-cd smolr && cargo build --release
-```
-
-### Run Inference
-
-```bash
-# C
-./smolc/smolc -m models/smollm2-135m-q8.bin -p "The capital of France is" -n 30
-
-# Rust
-./smolr/target/release/smolr -m models/smollm2-135m-q8.bin -p "The capital of France is" -n 30
-```
-
-### Command Line Options
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| `-m` | Model path | `../models/smollm2-135m-q8.bin` |
-| `-p` | Prompt | `"The capital of France is"` |
-| `-n` | Max tokens to generate | 50 |
-| `-t` | Temperature (0 = greedy) | 0 |
-
 ## Quantization
 
-### Create Q8 Model (129 MB)
-
 ```bash
+# Create Q8 model (129 MB)
 python step3_quantize.py
-```
 
-### Create Q4 Model (~65 MB)
-
-```bash
+# Create Q4 model (~65 MB)
 python step3_quantize.py --q4 --group-size 32
 ```
 
 ## Verification
 
+All implementations verified against reference:
+
+| Phase | Verification | Status |
+|-------|--------------|--------|
+| 1 | C vs PyTorch Q8 | **PASS** |
+| 2 | Rust vs C | **PASS** |
+| 3 | SMOL-32 emulator vs C | **PASS** (4.53e-05 max diff) |
+
 ```bash
-# Verify C vs PyTorch Q8
-python step6_verify.py
-
-# Verify Rust vs C
-python step7_verify_rust.py
-
-# Verify quantized vs FP32
-python step4_pytorch_q8.py
+python step6_verify.py        # C vs PyTorch
+python step7_verify_rust.py   # Rust vs C
+cd processor && ./run_model   # Emulator vs C
 ```
 
 ## Model Architecture
@@ -106,7 +110,11 @@ python step4_pytorch_q8.py
 
 ## Documentation
 
-See [docs/development_log.md](docs/development_log.md) for detailed implementation notes, issues encountered, and solutions.
+- [docs/README.md](docs/README.md) — Documentation index organized by phase
+- [docs/ISA.md](docs/ISA.md) — SMOL-32 instruction set specification
+- [docs/analysis.md](docs/analysis.md) — Computational workload analysis
+- [docs/development_log.md](docs/development_log.md) — Complete development history
+- [docs/verification_report.md](docs/verification_report.md) — Q4 vs Q8 vs FP32 comparison
 
 ## License
 

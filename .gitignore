@@ -4,6 +4,9 @@ models/
 settings.local.json
 *.pt
 
+# Blog post / report
+report/
+
 
 # Python
 __pycache__/
@@ -30,6 +33,14 @@ smolr/Cargo.lock
 smolc/smolc
 smolc/*.o
 smolc/*.a
+
+# Processor build artifacts
+processor/test_emulator
+processor/run_model
+processor/run_model_dbg
+processor/generate
+processor/*.o
+processor/kernels/*.bin
 
 # IDE
 .idea/

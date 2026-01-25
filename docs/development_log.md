@@ -382,6 +382,200 @@ C output:    Hello, my name is Emily, and I'm a professional photographer...
 
 ---
 
+## Custom Processor: SMOL-32 ISA & Emulator
+
+**User request:** "create a new working folder called processor/ I want you to analyze the minimal c implementation of the inference code and design an ISA that is optimized for this task (assume a 32bit machine)."
+
+### Analysis
+
+Profiled the C inference code's computational breakdown:
+
+| Operation | % of Compute | Notes |
+|-----------|-------------|-------|
+| Q8 Matmul (W×x) | ~96% | 16 matrix-vector products per layer × 30 layers |
+| RMSNorm | ~1.5% | 2 per layer (sum of squares + scale) |
+| RoPE | ~0.5% | 12 heads × 64-dim rotations |
+| SiLU + element-wise | ~1% | 1536-dim intermediate |
+| Softmax + attention | ~1% | Per-head dot products and weighted sum |
+
+Key insight: The dominant operation is fused INT8 dequantize-multiply-accumulate, performing `sum += (float)w_q8 * scale * x_fp32` across weight rows.
+
+### SMOL-32 ISA Design
+
+**Architecture:**
+- 32-bit fixed-width instructions
+- 32 integer registers (R0=zero), 32 FP registers (F0=0.0)
+- 8 vector registers × 16 FP32 lanes (512-bit SIMD)
+- Special registers: 64-bit accumulator, Q8 scale, QBASE, FBASE, VL
+
+**Instruction encoding formats:**
+- R-type: op[6] | rd[5] | rs1[5] | rs2[5] | func[5] | ext[6]
+- I-type: op[6] | rd[5] | rs1[5] | imm[16]
+- Branch: op[6] | rd[5] | rs1[5] | cond[3] | offset[13]
+
+**Key custom instructions:**
+- `Q8MACINC n` — Fused: ACC += sum(Q8[qbase:qbase+n] × scale × FP32[fbase:fbase+n*4]); advances both pointers
+- `QSETSCALE`, `QSETBASE`, `FSETBASE` — Configure Q8 MAC unit
+- `ACCZERO`, `ACCREAD` — Accumulator control
+- `VREDSQS` — Vector reduction: sum of squares (for RMSNorm)
+- `VSILU` — Vector SiLU activation
+- `FRSQRT` — Fast reciprocal square root
+- `LOOP rs, offset` — Decrement rs; if rs > 0, branch to PC + offset (fuses ADDI+BNEZ, 31% instruction reduction)
+
+**Performance estimate:** ~830 tokens/sec at 500MHz (vs ~3 tok/s on CPU)
+
+### Assembler
+
+**File:** `processor/assembler.py`
+
+Two-pass assembler that translates SMOL-32 assembly to binary:
+- Pass 1: Collect labels, compute addresses
+- Pass 2: Resolve branch targets, emit 32-bit encodings
+
+Supports full instruction set including vector ops, Q8 MAC, and all branch forms. Includes a disassembler for verification.
+
+**Issues encountered:**
+1. **Branch encoding conflict** — Condition code and offset initially overlapped in the 16-bit immediate. Fixed by splitting: imm[15:13]=condition, imm[12:0]=signed word offset.
+2. **Shift instructions** — Initially encoded as ALUI (immediate); actually R-type with shift amount in ext field.
+3. **Vector load/store** — V-type format had insufficient bits for base register. Switched to I-type format.
+4. **Label fixups** — NoneType error when branch targets were forward-references. Fixed with two-pass approach returning fixup tuples.
+
+### Assembly Kernels
+
+| Kernel | File | Bytes | Description |
+|--------|------|-------|-------------|
+| matmul_q8 | `kernels/matmul_q8.s` | 136 | Q8 matrix-vector multiply using Q8MACINC |
+| rmsnorm | `kernels/rmsnorm.s` | 212 | Two-pass RMS normalization with VREDSQS |
+| rope | `kernels/rope.s` | 212 | Rotary position embeddings (vector mul/sub/add) |
+| attention | `kernels/attention.s` | 532 | Multi-head grouped-query attention with softmax |
+| silu_mul | `kernels/silu_mul.s` | 44 | SiLU-gate activation using VSILU |
+| residual | `kernels/residual.s` | 40 | Element-wise vector addition (VADD) |
+| embed | `kernels/embed.s` | 100 | Int8→float embedding dequantization |
+| memcpy | `kernels/memcpy.s` | 32 | Float vector memory copy (for KV cache) |
+| forward | `kernels/forward.s` | 1,208 | Full 30-layer forward pass orchestration |
+
+**Total kernel code: 2,516 bytes** (1,308 compute + 1,208 orchestration) for the complete transformer inference engine.
+
+The inner loop of matmul is just 2 instructions: `Q8MACINC 16; LOOP` — demonstrating the ISA's efficiency for this workload.
+
+### C Emulator
+
+**Files:** `processor/emulator.h`, `processor/emulator.c`, `processor/test_emulator.c`
+
+Full instruction interpreter implementing all SMOL-32 instructions:
+- Fetch-decode-execute loop
+- Flat 256MB address space
+- Accurate Q8 MAC with double-precision accumulation
+- Vector register file with configurable VL
+- Instruction and cycle counting
+
+**Test results:**
+```
+=== Test: Q8 Matrix-Vector Multiply ===
+  Rows=64, Cols=576, Scale=0.0200
+  Max difference: 2.19e-05 → PASS
+
+=== Test: RMSNorm ===
+  n=576, eps=1.0e-05
+  Max difference: 7.15e-07 → PASS
+
+=== Test: Matmul with Real Model Weights ===
+  Q_proj: rows=576, cols=576, scale=0.041339
+  Max difference: 7.15e-07 → PASS
+```
+
+**Issues encountered:**
+1. **Q8MACINC only advanced QBASE** — The activation pointer (FBASE) was not advancing between chunks, causing subsequent Q8MACINC calls to read the same 16 floats. Fixed by advancing FBASE by n×4 bytes alongside QBASE.
+2. **Opcode defines not shared** — Defines were in emulator.c but needed by test_emulator.c. Moved to emulator.h.
+
+### Full Model Runner (run_model.c)
+
+Loads the complete SmolLM2-135M Q8 model into emulator memory and runs a full forward pass on the SMOL-32 emulator, comparing output against a pure-C reference implementation.
+
+**Memory layout:**
+```
+0x0000_0000 - 0x0000_9FFF : Kernel code (40KB, 9 kernels at 4KB intervals)
+0x000E_0000 - 0x000E_0FFF : Model descriptor (64B header + 30 × 64B layer descriptors)
+0x0010_0000 - 0x003F_FFFF : State buffers (3MB: x, xb, xb2, q, k, v, att, hb, hb2, logits)
+0x0040_0000 - 0x08FF_FFFF : Model weights (~128MB Q8)
+0x0900_0000 - 0x0EFF_FFFF : KV caches
+0x0F00_0000 - 0x0F1F_FFFF : RoPE cos/sin tables
+0x0FF0_0000 - 0x0FFF_FFFF : Stack (1MB, grows down)
+```
+
+**Calling convention:** `cpu_reset_for_call()` sets RA=0 (HALT trap at address 0), SP=top-of-stack, then runs until HALT. The forward kernel is invoked once with R3=token, R4=position, R5=descriptor base.
+
+**Result (assembly forward pass vs pure-C reference):**
+```
+Assembly forward: 19,010,082 instructions executed
+Max logit difference: 4.53e-05
+Avg logit difference: 2.43e-05
+Mismatches (>0.1): 0 / 49152
+Result: PASS - Assembly matches reference!
+```
+
+### Assembly Forward Pass (forward.s)
+
+The entire 30-layer transformer forward pass now runs as a single assembly kernel call. The C host only sets up arguments (token, position, descriptor pointer) and reads back the final logits — all intermediate computation, buffering, and looping happens in SMOL-32 assembly.
+
+**Invocation:**
+```c
+cpu_reset_for_call(cpu, FORWARD_ENTRY);   // 0x9000
+cpu->r[3] = token;
+cpu->r[4] = pos;
+cpu->r[5] = DESC_BASE;                   // 0xE0000
+cpu_run(cpu, 500000000000ULL);
+// Read logits from BUF_BASE + 0x80000
+```
+
+**Model Descriptor (at 0xE0000):**
+
+A data structure in emulator memory that the assembly reads to locate weights and config values:
+- 64-byte header: embedding addresses, config scalars (hidden_size, num_layers, etc.), RoPE table base, KV stride
+- 30 × 64-byte layer descriptors: pointers to each layer's weight data/scale for all 8 projections + 2 layer norms
+
+**Register allocation (callee-saved across sub-kernel calls):**
+```
+R16 = desc_base        R17 = position         R18 = layer_desc_ptr
+R19 = layer_counter    R20 = cos_addr         R21 = sin_addr
+R22 = kv_head_stride   R23 = layer_k_cache    R24 = layer_v_cache
+R25 = seq_len (pos+1)  R26 = max_seq_len      R27 = BUF_X (0x100000)
+R28 = hidden_size(576) R29 = temp
+```
+
+**Key patterns:**
+- Sub-kernel calls: `LI R10, addr; JALR RA, R10, 0` (or ADDI workaround for 0x8000)
+- Large addresses: `LI R27, 16; SLLI R27, R27, 16` → 0x100000
+- KV cache advance: `6 × kv_head_stride_bytes` computed with shifts+adds, no multiplication
+
+**Performance:** 19.0M instructions for a single forward pass (token 1 at position 0). The LOOP instruction optimization reduced this from 27.6M (31% improvement).
+
+### Text Generator (generate.c)
+
+Full text generation program running the SmolLM2 model entirely on the SMOL-32 emulator. Includes BPE tokenization, autoregressive generation loop, and sampling.
+
+**Forward pass:** A single call to the assembly forward kernel (at 0x9000) executes the entire 30-layer pipeline. The host-side `forward()` function just sets up registers and reads back logits — all intermediate data stays in emulator memory throughout.
+
+**Usage:**
+```bash
+./generate -p "The capital of France is" -n 50 -s 128 -t 0.0
+```
+
+**Output:**
+```
+The capital of France is Paris, a city known for its historical
+landmarks, culture, and cultural institutions. Paris is a major...
+```
+
+**Issues encountered during development:**
+1. **Memory layout overlap** — Weight base at 0x01000000 overlapped with KV base. Fixed by moving weights to 0x00400000 and KV to 0x09000000.
+2. **Hand-encoded instruction bugs** — Initial approach of manually encoding kernel instructions led to subtle errors (wrong register fields, wrong opcodes). Switched to using the assembler to produce .bin files.
+3. **Matmul input buffer preservation** — Initially reloaded BUF_XB from host between each Q/K/V matmul call. Analysis showed the matmul kernel only reads from FBASE (never writes), so BUF_XB persists across calls. Eliminated unnecessary roundtrips.
+
+### Processor Status: ✓ Full Forward Pass in Assembly, Verified Against C Reference
+
+---
+
 ## File Summary
 
 | File | Purpose |
@@ -399,6 +593,25 @@ C output:    Hello, my name is Emily, and I'm a professional photographer...
 | `smolr/src/main.rs` | Rust implementation |
 | `step7_verify_rust.py` | Rust vs C verification |
 | `models/smollm2-135m-q8.bin` | Quantized Q8 model (129.51 MB) |
+| `docs/ISA.md` | SMOL-32 instruction set specification |
+| `docs/analysis.md` | Computational analysis of inference workload |
+| `processor/encoding.h` | C header with opcode/encoding defines |
+| `processor/assembler.py` | Assembler + disassembler for SMOL-32 |
+| `processor/emulator.h` | CPU emulator header (state + opcodes) |
+| `processor/emulator.c` | CPU emulator implementation (256MB, full ISA) |
+| `processor/test_emulator.c` | Emulator unit test harness |
+| `processor/run_model.c` | Full model runner: emulator vs reference comparison |
+| `processor/generate.c` | Text generation using emulator for all compute |
+| `processor/Makefile` | Build system for kernels + programs |
+| `processor/kernels/matmul_q8.s` | Q8 matrix-vector multiply (Q8MACINC) |
+| `processor/kernels/rmsnorm.s` | RMS normalization (VREDSQS + FRSQRT) |
+| `processor/kernels/rope.s` | Rotary position embeddings (VMUL/VSUB/VADD) |
+| `processor/kernels/attention.s` | Multi-head GQA + softmax (FEXP/FRECIP) |
+| `processor/kernels/silu_mul.s` | SiLU-gate activation (VSILU + VMUL) |
+| `processor/kernels/residual.s` | Residual addition (VADD) |
+| `processor/kernels/embed.s` | Embedding dequant (FCVT.S.W + FMUL) |
+| `processor/kernels/memcpy.s` | Float vector copy (LVF/SVF) |
+| `processor/kernels/forward.s` | Full 30-layer forward pass in assembly (1216B, 304 instructions) |
 
 ---
 
@@ -443,4 +656,4 @@ python step7_verify_rust.py
 
 ---
 
-*Generated: 2026-01-16*
+*Generated: 2026-01-16, Updated: 2026-01-25*
