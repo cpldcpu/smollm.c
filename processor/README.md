@@ -1,6 +1,6 @@
 # SMOL-32 Processor
 
-A custom 32-bit instruction set architecture and emulator designed for efficient transformer model inference with INT8 quantized weights.
+A custom 32-bit instruction set architecture designed for efficient transformer model inference with INT8 quantized weights. Implemented as both a C emulator and synthesizable Verilog RTL.
 
 ## Overview
 
@@ -9,7 +9,8 @@ The SMOL-32 processor runs the entire SmolLM2-135M forward pass in assembly, ach
 **Key stats:**
 - 9 assembly kernels totaling 2,516 bytes
 - 19.0M instructions per forward pass
-- Numerical accuracy: 4.53e-05 max logit difference vs C reference
+- C emulator: 4.53e-05 max logit difference vs reference
+- Verilog RTL: Top-5 tokens match exactly (verified via Verilator)
 
 ## Building
 
@@ -104,6 +105,25 @@ Located in `kernels/`, assembled by `assembler.py`:
 | test_emulator.c | Kernel unit tests |
 | encoding.h | Opcode definitions (shared) |
 | Makefile | Build system |
+
+## Verilog Implementation
+
+The `verilog/` subdirectory contains a synthesizable RTL implementation of the SMOL-32 processor.
+
+```bash
+cd verilog
+verilator --cc --exe --build --trace -j 0 -Irtl \
+    -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-CASEINCOMPLETE -Wno-LATCH -Wno-COMBDLY \
+    rtl/smol32_top.v tb/tb_verilator.cpp -o Vsmol32_tb
+./obj_dir/Vsmol32_tb --forward
+```
+
+**Results:**
+- Full 30-layer forward pass: ~910M cycles
+- Top-5 predicted tokens match C emulator exactly
+- Avg logit difference: 1.18e-4
+
+See [verilog/README.md](verilog/README.md) for details.
 
 ## Documentation
 

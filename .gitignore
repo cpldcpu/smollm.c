@@ -6,7 +6,7 @@ settings.local.json
 
 # Blog post / report
 report/
-
+snags/
 
 # Python
 __pycache__/
@@ -41,6 +41,15 @@ processor/run_model_dbg
 processor/generate
 processor/*.o
 processor/kernels/*.bin
+
+# Verilog simulation artifacts
+processor/verilog/obj_dir/
+processor/verilog/sim/*.vvp
+processor/verilog/sim/*.vcd
+processor/verilog/sim/obj_dir/
+processor/verilog/*.vcd
+
+
 
 # IDE
 .idea/

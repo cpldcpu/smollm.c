@@ -1,6 +1,6 @@
 # Documentation
 
-This folder contains technical documentation for the SmolLM2-135M inference engine project, which was developed in three phases.
+This folder contains technical documentation for the SmolLM2-135M inference engine project, which was developed in four phases.
 
 ## Development Phases
 
@@ -61,13 +61,31 @@ A custom 32-bit instruction set architecture and emulator designed for efficient
 
 ---
 
+### Phase 4: Verilog Implementation (`processor/verilog/`)
+
+Synthesizable Verilog RTL of the SMOL-32 processor, verified against the C emulator with a full 30-layer forward pass.
+
+**Key components:**
+- `processor/verilog/rtl/*.v` — 12 Verilog modules (core, FPU, vector unit, Q8 MAC, etc.)
+- `processor/verilog/tb/tb_verilator.cpp` — Verilator C++ testbench with forward pass test
+
+**Results:**
+- Full 30-layer forward pass: ~910M cycles
+- Top-5 predicted tokens match C reference exactly
+- Average logit difference: 1.18e-4
+
+**Documentation:**
+- [development_log.md](development_log.md) — "Phase 4: Verilog Implementation" sections
+
+---
+
 ## Document Index
 
 | Document | Phase | Description |
 |----------|-------|-------------|
-| [ISA.md](ISA.md) | 3 | SMOL-32 instruction set architecture specification |
+| [ISA.md](ISA.md) | 3-4 | SMOL-32 instruction set architecture specification |
 | [analysis.md](analysis.md) | 3 | Computational workload analysis for transformer inference |
-| [development_log.md](development_log.md) | 1-3 | Complete development history, issues, and solutions |
+| [development_log.md](development_log.md) | 1-4 | Complete development history, issues, and solutions |
 | [verification_report.md](verification_report.md) | 1 | Quantization verification (Q4 vs Q8 vs FP32) |
 
 ---
@@ -81,13 +99,25 @@ All implementations verified against reference:
 | 1 | C vs PyTorch Q8 | **PASS** |
 | 2 | Rust vs C | **PASS** |
 | 3 | SMOL-32 emulator vs C | **PASS** (max logit diff: 4.53e-05) |
+| 4 | Verilog vs C emulator | **PASS** (top-5 tokens match exactly) |
 
 ---
 
-## Performance Summary (Phase 3)
+## Performance Summary
+
+### Phase 3: C Emulator
 
 | Metric | Value |
 |--------|-------|
 | Total kernel code | 2,516 bytes |
 | Instructions per forward pass | 19.0M |
 | Numerical accuracy | 4.53e-05 max logit difference |
+
+### Phase 4: Verilog RTL
+
+| Metric | Value |
+|--------|-------|
+| RTL modules | 12 Verilog files |
+| Cycles per forward pass | ~910M (multi-cycle design) |
+| Numerical accuracy | 1.18e-4 avg logit difference |
+| Top-5 token match | Exact match with C reference |

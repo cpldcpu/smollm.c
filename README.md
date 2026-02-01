@@ -2,9 +2,11 @@
 
 **Addendum (25 Jan 2026):** Added phase 3: custom SMOL-32 processor implementation fully designed and implemented by the agent.
 
+**Addendum (1 Feb 2026):** Added phase 4: Verilog implementation of SMOL-32 processor, verified against C emulator with full 30-layer forward pass.
+
 # SmolLM2-135M Inference Engine
 
-Lightweight inference engines for [SmolLM2-135M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct) implemented in three phases: C, Rust, and a custom SMOL-32 processor.
+Lightweight inference engines for [SmolLM2-135M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct) implemented in four phases: C, Rust, a custom SMOL-32 processor (emulator), and Verilog RTL.
 
 > **Note:** While developed using SmolLM2-135M, the implementation supports the LLaMA2 architecture in general (RMSNorm, RoPE, GQA, SwiGLU MLP). Other LLaMA2-family models can be used by adjusting the quantization export script.
 
@@ -43,6 +45,20 @@ cd processor && make
 
 See [processor/README.md](processor/README.md) for details.
 
+### Phase 4: Verilog Implementation (`processor/verilog/`)
+
+Synthesizable Verilog RTL of the SMOL-32 processor, verified against the C emulator.
+
+```bash
+cd processor/verilog
+verilator --cc --exe --build --trace -j 0 -Irtl \
+    -Wno-WIDTHEXPAND -Wno-WIDTHTRUNC -Wno-CASEINCOMPLETE -Wno-LATCH -Wno-COMBDLY \
+    rtl/smol32_top.v tb/tb_verilator.cpp -o Vsmol32_tb
+./obj_dir/Vsmol32_tb --forward
+```
+
+See [processor/verilog/README.md](processor/verilog/README.md) for details.
+
 ## Project Structure
 
 ```
@@ -52,11 +68,14 @@ See [processor/README.md](processor/README.md) for details.
 │   └── smolc.h
 ├── smolr/                  # Phase 2: Rust implementation
 │   └── src/main.rs
-├── processor/              # Phase 3: Custom SMOL-32 ISA & emulator
+├── processor/              # Phase 3 & 4: Custom SMOL-32 processor
 │   ├── assembler.py        # Two-pass assembler + disassembler
 │   ├── emulator.c/h        # Full instruction interpreter
 │   ├── generate.c          # Text generation using emulator
-│   └── kernels/            # Assembly kernels (2,516 bytes total)
+│   ├── kernels/            # Assembly kernels (2,516 bytes total)
+│   └── verilog/            # Phase 4: Synthesizable RTL
+│       ├── rtl/            # Verilog modules
+│       └── tb/             # Testbenches (iverilog + Verilator)
 ├── docs/
 │   ├── ISA.md              # SMOL-32 instruction set specification
 │   ├── analysis.md         # Computational workload analysis
@@ -90,11 +109,13 @@ All implementations verified against reference:
 | 1 | C vs PyTorch Q8 | **PASS** |
 | 2 | Rust vs C | **PASS** |
 | 3 | SMOL-32 emulator vs C | **PASS** (4.53e-05 max diff) |
+| 4 | Verilog vs C emulator | **PASS** (top-5 tokens match exactly) |
 
 ```bash
-python step6_verify.py        # C vs PyTorch
-python step7_verify_rust.py   # Rust vs C
-cd processor && ./run_model   # Emulator vs C
+python step6_verify.py                      # C vs PyTorch
+python step7_verify_rust.py                 # Rust vs C
+cd processor && ./run_model                 # Emulator vs C
+cd processor/verilog && ./obj_dir/Vsmol32_tb --forward  # Verilog vs C
 ```
 
 ## Model Architecture
