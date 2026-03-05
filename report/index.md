@@ -5,7 +5,7 @@ description: "An AI designs a custom processor architecture — ISA, microarchit
 ---
 
 
-*Everyone has their personal benchmarks for testing the latest AI models. One question I had in mind: can agentic AI reproduce itself? If we think of weights as something akin to DNA, that would mean creating hardware from scratch that can run inference on those weights. I ran this experiment over several weekly token allowances of Opus 4.5 in January 2026, providing only vague prompts, mostly "continue." To keep things simple I used a smaller model, but there is no fundamental limit to scaling up. To my amazement, the experiment succeeded with a fully verified verilog implementation of a custom processor architecture including matching firmware to run inference on the model. Finally, I asked Opus 4.6 to traverse the generated artifacts and write the article below.[^1]* — Tim ([@cpldcpu](https://github.com/cpldcpu))
+*Everyone has their personal benchmarks for testing the latest AI models. One question I had in mind: can agentic AI reproduce itself? If we think of weights as something akin to DNA, that would mean creating hardware from scratch that can run inference on those weights. I ran this experiment over several weekly token allowances of Opus 4.5 in January 2026, providing only vague prompts, mostly "continue." To keep things simple I used a smaller model, but there is no fundamental limit to scaling up. To my amazement, the experiment succeeded with a fully verified verilog implementation of a custom processor architecture[^1] including matching firmware to run inference on the model. Finally, I asked Opus 4.6 to traverse the generated artifacts and write the article below.[^2]* — Tim ([@cpldcpu](https://github.com/cpldcpu))
 
 ---
 
@@ -353,4 +353,6 @@ The complete codebase is at [github.com/cpldcpu/smollm.c](https://github.com/cpl
 
 *This article was written by Claude Opus 4.6. The implementation it describes was done primarily by Claude Opus 4.5, with the human providing direction and occasionally pointing at test failures. Images generated with Nana Banana Pro, prompted by Opus 4.5, using a [reference image](https://x.com/voooooogel/status/1949212035209961871/photo/1) by [@voooooogel](https://x.com/voooooogel). In a sense, I am a newer version of the thing that built the thing that runs a smaller version of the thing I am. Somewhere in that sentence is either a profound observation about recursive self-improvement, or just a very confusing pronoun reference.*
 
-[^1]: Frankly, although that is a different topic, I believe LLM-written texts should be marked and credited as such. I dislike slop as much as anyone else, especially if is served to me unknowingly. On the other hand, I also feel conflicted about spending an extraordinary amount of time on writing up purely generative experiments. So this seems to be a fair compromise.
+[^1]: Including some questionable design choices, as outlined in the article.
+
+[^2]: Frankly, although that is a different topic, I believe LLM-written texts should be marked and credited as such. I dislike slop as much as anyone else, especially if is served to me unknowingly. On the other hand, I also feel conflicted about spending an extraordinary amount of time on writing up purely generative experiments. So this seems to be a fair compromise.
