@@ -355,4 +355,4 @@ The complete codebase is at [github.com/cpldcpu/smollm.c](https://github.com/cpl
 
 [^1]: Including some questionable design choices, as outlined in the article.
 
-[^2]: Frankly, although that is a different topic, I believe LLM-written texts should be marked and credited as such. I dislike slop as much as anyone else, especially if is served to me unknowingly. On the other hand, I also feel conflicted about spending an extraordinary amount of time on writing up purely generative experiments. So this seems to be a fair compromise.
+[^2]: Frankly, although that is a separate topic, I believe LLM-written texts should be marked and credited as such. I dislike slop as much as anyone else, especially if is served to me unknowingly. On the other hand, I also feel conflicted about spending an extraordinary amount of time on writing up purely generative experiments. So this seems to be a fair compromise.
