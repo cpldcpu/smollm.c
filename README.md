@@ -1,3 +1,7 @@
+**📄 [Read the full article: *Towards Self-Replication — Opus 4.5 Designs Hardware to Run Itself*](https://cpldcpu.github.io/smollm.c/)**
+
+---
+
 **Note (16 Jan 2026):** This was an agentic code generation experiment. The entire contents of this repository were generated with Claude Code and Opus 4.5 with minimal intervention and guidance. See [docs/development_log.md](docs/development_log.md) for details.
 
 **Addendum (25 Jan 2026):** Added phase 3: custom SMOL-32 processor implementation fully designed and implemented by the agent.
