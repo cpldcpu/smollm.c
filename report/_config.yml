@@ -1,0 +1,11 @@
+title: "Toward Self-Replication"
+baseurl: "/smollm.c"
+url: "https://cpldcpu.github.io"
+markdown: kramdown
+kramdown:
+  input: GFM
+  footnote_backlink: "&#8617;"
+plugins: []
+exclude:
+  - "*.pdf"
+  - "_layouts"

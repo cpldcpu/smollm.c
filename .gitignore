@@ -5,7 +5,6 @@ settings.local.json
 *.pt
 
 # Blog post / report
-report/
 snags/
 
 # Python
@@ -50,6 +49,7 @@ processor/verilog/sim/obj_dir/
 processor/verilog/*.vcd
 
 
+report_old/
 
 # IDE
 .idea/
