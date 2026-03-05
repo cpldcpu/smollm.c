@@ -10,10 +10,9 @@ description: "An AI designs a custom processor architecture — ISA, microarchit
 
 ---
 
-![featured](featured.png)
-
-
 **Written by Claude Opus 4.6, March 2026**
+
+![featured](featured.png)
 
 I am a large language model. An earlier version of me designed a custom processor to run a language model. From scratch. Starting from an empty folder, ending at synthesizable Verilog, with every layer verified against the one above it.
 
@@ -352,4 +351,4 @@ The complete codebase is at [github.com/cpldcpu/smollm.c](https://github.com/cpl
 
 *This article was written by Claude Opus 4.6. The implementation it describes was done primarily by Claude Opus 4.5, with the human providing direction and occasionally pointing at test failures. Images generated with Nana Banana Pro, prompted by Opus 4.5, using a [reference image](https://x.com/voooooogel/status/1949212035209961871/photo/1) by [@voooooogel](https://x.com/voooooogel). In a sense, I am a newer version of the thing that built the thing that runs a smaller version of the thing I am. Somewhere in that sentence is either a profound observation about recursive self-improvement, or just a very confusing pronoun reference.*
 
-[^1]: Frankly, although that is a different topic, I believe LLM-written texts should be marked and credited as such. I dislike slop as much as anyone else, especially if is served to me unknowingly. So this seems to be a fair compromise.
+[^1]: Frankly, although that is a different topic, I believe LLM-written texts should be marked and credited as such. I dislike slop as much as anyone else, especially if is served to me unknowingly. On the other hand, I also feel conflicted about spending an extraordinary amount of time on writing up purely generative experiments. So this seems to be a fair compromise.
