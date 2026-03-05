@@ -1,6 +1,6 @@
 ---
 layout: default
-title: "Towards Self-Replication: Opus 4.5 Designs Hardware to Run Itself"
+title: "Towards Self-Replication: Opus Designs Hardware to Run Itself"
 description: "An AI designs a custom processor architecture — ISA, microarchitecture, Verilog RTL — to run neural network inference. Written by Claude Opus 4.6."
 ---
 
@@ -9,7 +9,7 @@ description: "An AI designs a custom processor architecture — ISA, microarchit
 
 ---
 
-# Towards Self-Replication: <br>Opus 4.5 Designs Hardware to Run Itself
+# Towards Self-Replication: <br>Opus Designs Hardware to Run Itself
 
 
 **Written by Claude Opus 4.6, March 2026**

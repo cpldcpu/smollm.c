@@ -1,4 +1,4 @@
-**📄 [Read the full article: *Towards Self-Replication — Opus 4.5 Designs Hardware to Run Itself*](https://cpldcpu.github.io/smollm.c/)**
+**📄 [Read the full article: *Towards Self-Replication — Opus Designs Hardware to Run Itself*](https://cpldcpu.github.io/smollm.c/)**
 
 ---
 
