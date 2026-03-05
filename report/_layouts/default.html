@@ -21,14 +21,14 @@
     }
 
     body {
-      max-width: 820px;
+      max-width: 1000px;
       margin: 0 auto;
-      padding: 2rem 1.5rem 4rem;
+      padding: 2rem 2rem 4rem;
     }
 
     /* Title */
     h1 {
-      font-size: 2rem;
+      font-size: 2.2rem;
       line-height: 1.2;
       margin-bottom: 0.5rem;
     }
@@ -41,18 +41,19 @@
       margin-top: 2rem;
     }
 
-    /* Images: responsive, centered */
+    /* Images: constrained, centered */
     article img {
-      max-width: 100%;
+      max-width: 600px;
+      width: 100%;
       height: auto;
       display: block;
       margin: 1.5rem auto;
       border-radius: 6px;
     }
 
-    /* First image (featured) — larger */
-    article > p:first-of-type img,
-    article > p:nth-of-type(1) img {
+    /* Featured image at top — allow wider */
+    article > p:first-of-type img {
+      max-width: 100%;
       border-radius: 8px;
     }
 
@@ -85,6 +86,7 @@
     .mermaid {
       text-align: center;
       margin: 2rem auto;
+      max-width: 700px;
       background: transparent;
     }
 
