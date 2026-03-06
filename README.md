@@ -8,6 +8,11 @@
 
 **Addendum (1 Feb 2026):** Added phase 4: Verilog implementation of SMOL-32 processor, verified against C emulator with full 30-layer forward pass.
 
+**Addendum (5 March 2026):** Added article co-written with Opus: [ *Towards Self-Replication  Opus Designs Hardware to Run Itself*](https://cpldcpu.github.io/smollm.c/)
+
+---
+
+
 # SmolLM2-135M Inference Engine
 
 Lightweight inference engines for [SmolLM2-135M-Instruct](https://huggingface.co/HuggingFaceTB/SmolLM2-135M-Instruct) implemented in four phases: C, Rust, a custom SMOL-32 processor (emulator), and Verilog RTL.

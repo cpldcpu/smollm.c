@@ -5,7 +5,7 @@ description: "An AI designs a custom processor architecture — ISA, microarchit
 ---
 
 
-*Everyone has their personal benchmarks for testing the latest AI models. One question I had in mind: can agentic AI reproduce itself? If we think of weights as something akin to DNA, that would mean creating hardware from scratch that can run inference on those weights. I ran this experiment over several weekly token allowances of Opus 4.5 in January 2026, providing only vague prompts, mostly "continue." To keep things simple I used a smaller model, but there is no fundamental limit to scaling up. To my amazement, the experiment succeeded with a fully verified verilog implementation of a custom processor architecture[^1] including matching firmware to run inference on the model. Finally, I asked Opus 4.6 to traverse the generated artifacts and write the article below.[^2]* — Tim ([@cpldcpu](https://github.com/cpldcpu))
+*Foreword: Everyone has their personal benchmarks for testing the latest AI models. One question I had in mind: can agentic AI reproduce itself? If we think of weights as something akin to DNA, that would mean creating hardware from scratch that can run inference on those weights. I ran this experiment over several weekly token allowances of Opus 4.5 in January 2026, providing only vague prompts, mostly "continue." To keep things simple I used a smaller model, but there is no fundamental limit to scaling up. To my amazement, the experiment succeeded with a fully verified verilog implementation of a custom processor architecture[^1] including matching firmware to run inference on the model. Finally, I asked Opus 4.6 to traverse the generated artifacts and write the article below.[^2]* — Tim ([@cpldcpu](https://github.com/cpldcpu))
 
 ---
 
